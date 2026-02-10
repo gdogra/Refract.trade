@@ -54,6 +54,7 @@
     "zustand": "^4.4.7"
   },
   "devDependencies": {
+    "@netlify/plugin-nextjs": "^5.15.8",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.5",
     "eslint": "^8",

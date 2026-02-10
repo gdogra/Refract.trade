@@ -76,8 +76,8 @@ Refract.trade/
 ### Setup
 1. Clone the repository:
 ```bash
-git clone https://github.com/gdogra/Refract.trade.git
-cd Refract.trade
+git clone https://github.com/gdogra/refract.trade.git
+cd refract.trade
 ```
 
 2. Install dependencies:
@@ -193,14 +193,17 @@ IEX_API_KEY=your-api-key
 POLYGON_API_KEY=your-api-key
 ```
 
-### Vercel Deployment
-The application is optimized for deployment on Vercel:
+### Netlify Deployment
+The application is optimized for deployment on Netlify:
 
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/gdogra/refract.trade)
+
+Or manual deployment:
 ```bash
 npm run build
 ```
 
-Connect your repository to Vercel for automatic deployments.
+Connect your repository to Netlify for automatic deployments. See [DEPLOY_TO_NETLIFY.md](./DEPLOY_TO_NETLIFY.md) for detailed instructions.
 
 ## 📊 Performance
 
@@ -225,7 +228,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Documentation**: [docs.refract.trade](https://docs.refract.trade)
 - **Community**: [Discord Server](https://discord.gg/refracttrade)
-- **Issues**: [GitHub Issues](https://github.com/gdogra/Refract.trade/issues)
+- **Issues**: [GitHub Issues](https://github.com/gdogra/refract.trade/issues)
 - **Email**: support@refract.trade
 
 ## 🗺 Roadmap

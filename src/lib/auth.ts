@@ -3,22 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import { createSupabaseAdmin } from './supabase'
 import bcrypt from 'bcryptjs'
 
-// Environment variable validation
-const requiredEnvVars = {
-  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
-  NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY
-}
-
-// Check for missing environment variables
-const missingVars = Object.entries(requiredEnvVars)
-  .filter(([key, value]) => !value)
-  .map(([key]) => key)
-
-if (missingVars.length > 0) {
-  console.warn('Missing environment variables for auth:', missingVars)
-}
+// Note: Environment variables are validated at runtime during auth operations
 
 declare module 'next-auth' {
   interface User {
@@ -59,11 +44,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          // Check if required environment variables are available
-          if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-            console.error('Supabase environment variables not configured for auth')
-            return null
-          }
+          // Environment variables validated in createSupabaseAdmin
 
           const supabase = createSupabaseAdmin()
           

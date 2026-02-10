@@ -1,7 +1,31 @@
-import { NextAuthOptions } from 'next-auth'
+import { NextAuthOptions, User, DefaultSession } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { createSupabaseAdmin } from './supabase'
 import bcrypt from 'bcryptjs'
+
+declare module 'next-auth' {
+  interface User {
+    subscriptionTier?: string
+    profile?: any
+  }
+  
+  interface Session {
+    user: {
+      id: string
+      email: string
+      name?: string
+      subscriptionTier?: string
+      profile?: any
+    } & DefaultSession['user']
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    subscriptionTier?: string
+    profile?: any
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -72,7 +96,6 @@ export const authOptions: NextAuthOptions = {
     }
   },
   pages: {
-    signIn: '/auth/signin',
-    signUp: '/auth/signup'
+    signIn: '/auth/signin'
   }
 }

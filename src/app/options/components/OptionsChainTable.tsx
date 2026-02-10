@@ -1,0 +1,329 @@
+'use client'
+
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { motion } from 'framer-motion'
+import { Calendar, TrendingUp, TrendingDown, Volume, Activity } from 'lucide-react'
+
+interface OptionContract {
+  strike: number
+  call: {
+    bid: number
+    ask: number
+    last: number
+    volume: number
+    openInterest: number
+    delta: number
+    gamma: number
+    theta: number
+    vega: number
+    iv: number
+  }
+  put: {
+    bid: number
+    ask: number
+    last: number
+    volume: number
+    openInterest: number
+    delta: number
+    gamma: number
+    theta: number
+    vega: number
+    iv: number
+  }
+}
+
+interface OptionsChainTableProps {
+  symbol: string
+  selectedExpiry: string
+  onExpiryChange: (expiry: string) => void
+  selectedStrike: number | null
+  onStrikeSelect: (strike: number) => void
+}
+
+export default function OptionsChainTable({ 
+  symbol, 
+  selectedExpiry, 
+  onExpiryChange, 
+  selectedStrike, 
+  onStrikeSelect 
+}: OptionsChainTableProps) {
+  const [showGreeks, setShowGreeks] = useState(false)
+
+  const { data: expirations } = useQuery({
+    queryKey: ['option-expirations', symbol],
+    queryFn: async () => {
+      // Mock data - will connect to real API later
+      const dates = []
+      const today = new Date()
+      for (let i = 0; i < 8; i++) {
+        const date = new Date(today)
+        date.setDate(date.getDate() + (i * 7) + 7) // Weekly expirations
+        dates.push(date.toISOString().split('T')[0])
+      }
+      return dates
+    }
+  })
+
+  const { data: optionsChain, isLoading } = useQuery<OptionContract[]>({
+    queryKey: ['options-chain', symbol, selectedExpiry],
+    queryFn: async () => {
+      // Mock options chain data
+      const strikes = []
+      const baseStrike = 180 // Mock current price around $180
+      
+      for (let i = -10; i <= 10; i++) {
+        const strike = baseStrike + (i * 5)
+        strikes.push({
+          strike,
+          call: {
+            bid: Math.max(0, (baseStrike - strike) + Math.random() * 2),
+            ask: Math.max(0.05, (baseStrike - strike) + Math.random() * 2 + 0.05),
+            last: Math.max(0, (baseStrike - strike) + Math.random() * 2 + 0.02),
+            volume: Math.floor(Math.random() * 1000),
+            openInterest: Math.floor(Math.random() * 5000),
+            delta: strike < baseStrike ? 0.3 + Math.random() * 0.4 : Math.random() * 0.3,
+            gamma: Math.random() * 0.05,
+            theta: -(Math.random() * 30),
+            vega: Math.random() * 100,
+            iv: 0.2 + Math.random() * 0.3
+          },
+          put: {
+            bid: Math.max(0, (strike - baseStrike) + Math.random() * 2),
+            ask: Math.max(0.05, (strike - baseStrike) + Math.random() * 2 + 0.05),
+            last: Math.max(0, (strike - baseStrike) + Math.random() * 2 + 0.02),
+            volume: Math.floor(Math.random() * 1000),
+            openInterest: Math.floor(Math.random() * 5000),
+            delta: strike > baseStrike ? -(0.3 + Math.random() * 0.4) : -(Math.random() * 0.3),
+            gamma: Math.random() * 0.05,
+            theta: -(Math.random() * 30),
+            vega: Math.random() * 100,
+            iv: 0.2 + Math.random() * 0.3
+          }
+        })
+      }
+      
+      return strikes
+    }
+  })
+
+  if (!selectedExpiry && expirations && expirations.length > 0) {
+    onExpiryChange(expirations[0])
+  }
+
+  const formatPrice = (price: number) => price.toFixed(2)
+  const formatGreek = (value: number, decimals = 3) => value.toFixed(decimals)
+  const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`
+
+  if (isLoading) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+        <div className="animate-pulse">
+          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-6"></div>
+          <div className="space-y-4">
+            {[...Array(10)].map((_, i) => (
+              <div key={i} className="h-12 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <motion.div 
+      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+    >
+      {/* Header Controls */}
+      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Options Chain - {symbol}
+          </h2>
+          
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+            {/* Expiration Selector */}
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-4 w-4 text-gray-500" />
+              <select
+                value={selectedExpiry}
+                onChange={(e) => onExpiryChange(e.target.value)}
+                className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              >
+                {expirations?.map((expiry) => (
+                  <option key={expiry} value={expiry}>
+                    {new Date(expiry).toLocaleDateString()}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Greeks Toggle */}
+            <motion.button
+              onClick={() => setShowGreeks(!showGreeks)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                showGreeks 
+                  ? 'bg-brand-500 text-white' 
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {showGreeks ? 'Hide Greeks' : 'Show Greeks'}
+            </motion.button>
+          </div>
+        </div>
+      </div>
+
+      {/* Options Chain Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-gray-50 dark:bg-gray-700">
+            <tr>
+              <th colSpan={showGreeks ? 5 : 3} className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-r border-gray-200 dark:border-gray-600">
+                Calls
+              </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Strike
+              </th>
+              <th colSpan={showGreeks ? 5 : 3} className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-l border-gray-200 dark:border-gray-600">
+                Puts
+              </th>
+            </tr>
+            <tr className="text-xs text-gray-500 dark:text-gray-400">
+              {/* Call Headers */}
+              <th className="px-2 py-2 text-left">Last</th>
+              <th className="px-2 py-2 text-left">Vol</th>
+              <th className="px-2 py-2 text-left">IV</th>
+              {showGreeks && (
+                <>
+                  <th className="px-2 py-2 text-left">Delta</th>
+                  <th className="px-2 py-2 text-left border-r border-gray-200 dark:border-gray-600">Theta</th>
+                </>
+              )}
+              
+              {/* Strike */}
+              <th className="px-4 py-2 text-center font-semibold">Price</th>
+              
+              {/* Put Headers */}
+              {showGreeks && (
+                <>
+                  <th className="px-2 py-2 text-left border-l border-gray-200 dark:border-gray-600">Delta</th>
+                  <th className="px-2 py-2 text-left">Theta</th>
+                </>
+              )}
+              <th className="px-2 py-2 text-left">IV</th>
+              <th className="px-2 py-2 text-left">Vol</th>
+              <th className="px-2 py-2 text-left">Last</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            {optionsChain?.map((option, index) => {
+              const isSelected = selectedStrike === option.strike
+              const isITM = {
+                call: option.strike < 180, // Mock current price
+                put: option.strike > 180
+              }
+              
+              return (
+                <motion.tr
+                  key={option.strike}
+                  className={`hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors ${
+                    isSelected ? 'bg-brand-50 dark:bg-brand-900/20' : ''
+                  }`}
+                  onClick={() => onStrikeSelect(option.strike)}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.1, delay: index * 0.02 }}
+                  whileHover={{ scale: 1.005 }}
+                >
+                  {/* Call Data */}
+                  <td className={`px-2 py-3 text-sm ${isITM.call ? 'bg-green-50 dark:bg-green-900/20' : ''}`}>
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      {formatPrice(option.call.last)}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {formatPrice(option.call.bid)}/{formatPrice(option.call.ask)}
+                    </div>
+                  </td>
+                  <td className={`px-2 py-3 text-sm text-gray-900 dark:text-white ${isITM.call ? 'bg-green-50 dark:bg-green-900/20' : ''}`}>
+                    {option.call.volume.toLocaleString()}
+                  </td>
+                  <td className={`px-2 py-3 text-sm text-gray-900 dark:text-white ${isITM.call ? 'bg-green-50 dark:bg-green-900/20' : ''}`}>
+                    {formatPercent(option.call.iv)}
+                  </td>
+                  {showGreeks && (
+                    <>
+                      <td className={`px-2 py-3 text-sm text-gray-900 dark:text-white ${isITM.call ? 'bg-green-50 dark:bg-green-900/20' : ''}`}>
+                        {formatGreek(option.call.delta)}
+                      </td>
+                      <td className={`px-2 py-3 text-sm text-red-600 border-r border-gray-200 dark:border-gray-600 ${isITM.call ? 'bg-green-50 dark:bg-green-900/20' : ''}`}>
+                        {formatGreek(option.call.theta, 1)}
+                      </td>
+                    </>
+                  )}
+
+                  {/* Strike Price */}
+                  <td className="px-4 py-3 text-center">
+                    <div className={`font-bold text-lg ${
+                      isSelected ? 'text-brand-600' : 'text-gray-900 dark:text-white'
+                    }`}>
+                      {option.strike}
+                    </div>
+                  </td>
+
+                  {/* Put Data */}
+                  {showGreeks && (
+                    <>
+                      <td className={`px-2 py-3 text-sm text-gray-900 dark:text-white border-l border-gray-200 dark:border-gray-600 ${isITM.put ? 'bg-red-50 dark:bg-red-900/20' : ''}`}>
+                        {formatGreek(option.put.delta)}
+                      </td>
+                      <td className={`px-2 py-3 text-sm text-red-600 ${isITM.put ? 'bg-red-50 dark:bg-red-900/20' : ''}`}>
+                        {formatGreek(option.put.theta, 1)}
+                      </td>
+                    </>
+                  )}
+                  <td className={`px-2 py-3 text-sm text-gray-900 dark:text-white ${isITM.put ? 'bg-red-50 dark:bg-red-900/20' : ''}`}>
+                    {formatPercent(option.put.iv)}
+                  </td>
+                  <td className={`px-2 py-3 text-sm text-gray-900 dark:text-white ${isITM.put ? 'bg-red-50 dark:bg-red-900/20' : ''}`}>
+                    {option.put.volume.toLocaleString()}
+                  </td>
+                  <td className={`px-2 py-3 text-sm ${isITM.put ? 'bg-red-50 dark:bg-red-900/20' : ''}`}>
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      {formatPrice(option.put.last)}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {formatPrice(option.put.bid)}/{formatPrice(option.put.ask)}
+                    </div>
+                  </td>
+                </motion.tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Footer with Legend */}
+      <div className="p-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600">
+        <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-1">
+              <div className="w-3 h-3 bg-green-100 dark:bg-green-900/20 rounded"></div>
+              <span>In-the-Money</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-3 h-3 bg-red-100 dark:bg-red-900/20 rounded"></div>
+              <span>Out-of-the-Money</span>
+            </div>
+          </div>
+          <div>
+            Last updated: {new Date().toLocaleTimeString()}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
